@@ -1,5 +1,5 @@
 jax==0.2.21
-jaxlib==0.1.71
-scikit_optimize==0.8.1
 tqdm==4.60.0
+scikit_optimize==0.8.1
 matplotlib==3.4.2
+scikit_learn==1.0.1
