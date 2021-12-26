@@ -3,7 +3,7 @@ Accompanying source code for the paper
 
 	Variational integration of learned dynamical systems
 	Sina Ober-Blöbaum, Christian Offen
-	arxiv:  [arXiv:2112.12619](https://arxiv.org/abs/2112.12619)
+	arXiv:2112.12619
 	Status: Submitted.
 
 Please find the paper and citation information on [ArXiv](https://arxiv.org/abs/2112.12619) once they become available.
