@@ -1,7 +1,7 @@
 from jax.config import config
 config.update("jax_enable_x64", True)
 
-from jax import ops,jit, jacfwd
+from jax import jit, jacfwd
 import jax.numpy as jnp
 from tqdm import tqdm
 from functools import partial
@@ -106,7 +106,7 @@ class VarMPIntegrator:
         n = len(trj[0])
         
         for j in tqdm(range(n-2)):
-            trj = ops.index_update(trj,ops.index[:,j+2],self.q2_solve(trj[:,j],trj[:,j+1],minstepsize=minstepsize,maxiter=maxiter))
+            trj = trj.at[:,j+2].set(self.q2_solve(trj[:,j],trj[:,j+1],minstepsize=minstepsize,maxiter=maxiter))
             
         return trj
     
@@ -127,10 +127,10 @@ class VarMPIntegrator:
         p0 = self.p0_fun(trj[:,0],trj[:,1])
         
         ps = jnp.zeros(trj.shape)
-        ps = ops.index_update(ps,ops.index[:,0],p0)
+        ps = ps.at[:,0].set(p0)
         
         for j in tqdm(range(1,n)):
-            ps = ops.index_update(ps,ops.index[:,j],self.p1_fun(trj[:,j-1],trj[:,j]))
+            ps = ps.at[:,j].set(self.p1_fun(trj[:,j-1],trj[:,j]))
             
         return ps
         
@@ -147,17 +147,17 @@ class VarMPIntegrator:
         
         # j= 0
         v_guess = (trj[:,1]-trj[:,0])/self.h
-        v = ops.index_update(v,ops.index[:,0],self.qdot_solve(trj[:,0],ps[:,0],v_guess))
+        v = v.at[:,0].set(self.qdot_solve(trj[:,0],ps[:,0],v_guess))
         
         # j = 1,...,n-2
         for j in tqdm(range(1,n-1)):
             
             v_guess = (trj[:,j+1]-trj[:,j-1])/(2*self.h)
-            v = ops.index_update(v,ops.index[:,j],self.qdot_solve(trj[:,j],ps[:,j],v_guess))
+            v = v.at[:,j].set(self.qdot_solve(trj[:,j],ps[:,j],v_guess))
             
         # j = n-1
         v_guess = (trj[:,n-1]-trj[:,n-2])/self.h
-        v = ops.index_update(v,ops.index[:,n-1],self.qdot_solve(trj[:,n-1],ps[:,n-1],v_guess))
+        v = v.at[:,n-1].set(self.qdot_solve(trj[:,n-1],ps[:,n-1],v_guess))
         
         return v,ps
     

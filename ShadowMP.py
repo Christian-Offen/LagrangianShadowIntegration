@@ -32,7 +32,7 @@ class GPMP:
                 
         def kZ(x):
             out = jnp.zeros(len(Z))
-            out = lax.fori_loop(0,len(Z), lambda j, out: ops.index_update(out,ops.index[j], self.k(x,Z[j]) ),out)
+            out = lax.fori_loop(0,len(Z), lambda j, out: out.at[j].set(self.k(x,Z[j]) ),out)
             return out
 
         dkZ = jacfwd(kZ)
@@ -61,14 +61,14 @@ class GPMP:
         # data consistency equations
         print('calculate data consistency equations')
         lhsDEL = jnp.zeros((self.DataTriples.shape[0],self.dim,Z.shape[0]))
-        bodyfun = lambda j, lhsDEL: ops.index_update(lhsDEL,ops.index[j], lhs0(self.DataTriples[j].transpose()))
+        bodyfun = lambda j, lhsDEL: lhsDEL.at[j].set(lhs0(self.DataTriples[j].transpose()))
         lhsDEL = lax.fori_loop(0,len(self.DataTriples), bodyfun,lhsDEL)
         lhsDEL=lhsDEL.reshape(self.DataTriples.shape[0]*self.dim,Z.shape[0])
         lhs = jnp.vstack([lhsDEL,normalise,normaliseTotal])
         
         
         rhs = jnp.zeros(lhs.shape[0])
-        rhs = ops.index_update(rhs,ops.index[-2],1.) # symplectic volume of unit simplex normalised to 1
+        rhs = rhs.at[-2].set(1.) # symplectic volume of unit simplex normalised to 1
         
         # solve minimal norm / least square
         print('solve linear system dimensions: '+str(lhs.shape))
@@ -88,7 +88,7 @@ class GPMP:
     def Lmi(self,y):
 
         kyqq = jnp.zeros(len(self.Z))
-        bodyfun = lambda j,kyqq0: ops.index_update(kyqq0, ops.index[j], self.k(y,self.Z[j]))
+        bodyfun = lambda j,kyqq0: kyqq0.at[j].set(self.k(y,self.Z[j]))
         kyqq = lax.fori_loop(0,len(self.Z), bodyfun,kyqq)
 
         return kyqq @ self.kinvL
@@ -219,10 +219,10 @@ class GPMP:
         
         # compute trajectory
         trj = jnp.zeros((self.dim,n+1))
-        trj = ops.index_update(trj,ops.index[:,0],q0)
-        trj = ops.index_update(trj,ops.index[:,1],q1)
+        trj = trj.at[:,0].set(q0)
+        trj = trj.at[:,1].set(q1)
 
-        body_update = lambda j, trj: ops.index_update(trj,ops.index[:,j+2], self.q2_solve(trj[:,j],trj[:,j+1]) )
+        body_update = lambda j, trj: trj.at[:,j+2].set(self.q2_solve(trj[:,j],trj[:,j+1]) )
         trj = lax.fori_loop(0,len(trj[0])-2, body_update,trj)
 
         return trj
@@ -234,7 +234,7 @@ class GPMP:
         err_q2_solver = jnp.zeros((self.dim,len(trj[0])-2))
 		
         for j in tqdm(range(len(trj[0])-2)):
-                err_q2_solver = ops.index_update(err_q2_solver,ops.index[:,j],self.DEL(trj[:,j],trj[:,j+1],trj[:,j+2]))
+                err_q2_solver = err_q2_solver.at[:,j].set(self.DEL(trj[:,j],trj[:,j+1],trj[:,j+2]))
 
         return jnp.sum(jnp.abs(err_q2_solver)) # 1-norm of internal error (worst case: all errors sum up)
 
@@ -255,9 +255,9 @@ class GPMP:
     # computes derivatives to trajectory using the Lagrangian framework
     def motionqdot(self,trj):
         qdotRectrj = jnp.zeros((2,len(trj[0])-1))
-        qdotRectrj = ops.index_update(qdotRectrj,ops.index[:,0], self.qdotRecover2(trj[:,0],self.p0_fun(trj[:,0],trj[:,1]),jnp.array([0.,0.])) )
+        qdotRectrj = qdotRectrj.at[:,0].set(self.qdotRecover2(trj[:,0],self.p0_fun(trj[:,0],trj[:,1]),jnp.array([0.,0.])) )
         for j in tqdm(range(1,len(trj[0])-1)):    
-            qdotRectrj = ops.index_update(qdotRectrj,ops.index[:,j], self.qdotRecover2(trj[:,j],self.p0_fun(trj[:,j],trj[:,j+1]),qdotRectrj[:,j-1]))
+            qdotRectrj = qdotRectrj.at[:,j].set(self.qdotRecover2(trj[:,j],self.p0_fun(trj[:,j],trj[:,j+1]),qdotRectrj[:,j-1]))
             
         qdotfinal = self.qdotRecover2(trj[:,-1],self.p1_fun(trj[:,-2],trj[:,-1]),qdotRectrj[:,-1])
         qdotRectrj=jnp.block([ qdotRectrj, jnp.array([qdotfinal]).transpose()  ])

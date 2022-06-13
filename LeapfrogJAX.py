@@ -14,11 +14,16 @@ def Leapfrog(z,h,f):
 	dim = int(len(z)/2)
 
 	#z[dim:] = z[dim:]+h/2*f(z[:dim])
-	z = ops.index_update(z, ops.index[dim:], z[dim:]+h/2*f(z[:dim]) )
+	#z = ops.index_update(z, ops.index[dim:], z[dim:]+h/2*f(z[:dim]) )
+	z = z.at[dim:].set(z[dim:]+h/2*f(z[:dim]))
+	
 	#z[:dim] = z[:dim]+h*z[dim:]
-	z = ops.index_update(z, ops.index[:dim], z[:dim]+h*z[dim:] )
+	#z = ops.index_update(z, ops.index[:dim], z[:dim]+h*z[dim:] )
+	z = z.at[:dim].set(z[:dim]+h*z[dim:] )
+	
 	#z[dim:] = z[dim:]+h/2*f(z[:dim])
-	z = ops.index_update(z, ops.index[dim:], z[dim:]+h/2*f(z[:dim]) )
+	#z = ops.index_update(z, ops.index[dim:], z[dim:]+h/2*f(z[:dim]) )
+	z = z.at[dim:].set(z[dim:]+h/2*f(z[:dim]))
 
 	return z
 	

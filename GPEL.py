@@ -26,7 +26,8 @@ class GPEL:
         
     def kZ(self,x):
             out = jnp.zeros(len(self.Z))
-            out = lax.fori_loop(0,len(self.Z), lambda j, out: ops.index_update(out,ops.index[j], self.k(x,self.Z[j]) ),out)
+            #out = lax.fori_loop(0,len(self.Z), lambda j, out: ops.index_update(out,ops.index[j], self.k(x,self.Z[j]) ),out)
+            out = lax.fori_loop(0,len(self.Z), lambda j, out: out.at[j].set(self.k(x,self.Z[j]) ),out)
             return out
     
     @partial(jit, static_argnums=(0,))
@@ -62,13 +63,15 @@ class GPEL:
 	
     def row(self,a):
         rw = jnp.zeros((len(self.Z),self.dim))
-        body_fun = lambda j,rw: ops.index_update(rw,ops.index[j],self.el(a,self.Z[j]))
+        #body_fun = lambda j,rw: ops.index_update(rw,ops.index[j],self.el(a,self.Z[j]))
+        body_fun = lambda j,rw: rw.at[j].set(self.el(a,self.Z[j]))
         return lax.fori_loop(0,len(self.Z),body_fun,rw)
 		
     def lhs_data_consistency(self):
         A = jnp.transpose(self.data_train)
         mt = jnp.zeros((len(A),len(self.Z),self.dim))
-        body_fun = lambda j,mt: ops.index_update(mt,ops.index[j],self.row(A[j]))
+        #body_fun = lambda j,mt: ops.index_update(mt,ops.index[j],self.row(A[j]))
+        body_fun = lambda j,mt: mt.at[j].set(self.row(A[j]))
         mt = lax.fori_loop(0,len(A),body_fun,mt)
 		
         return jnp.reshape(mt,(self.dim*len(self.data_train[0,:]),len(self.Z)))
@@ -95,7 +98,8 @@ class GPEL:
         
         lhs = jnp.vstack([self.lhs_data_consistency(),self.lhs_non_trivial()])
         rhs = jnp.zeros(lhs.shape[0])
-        rhs = ops.index_update(rhs,ops.index[-2], sympl_std_vol) # symplectic volume of unit simplex normalised to sympl_std_vol
+        #rhs = ops.index_update(rhs,ops.index[-2], sympl_std_vol) # symplectic volume of unit simplex normalised to sympl_std_vol
+        rhs = rhs.at[-2].set(sympl_std_vol) # symplectic volume of unit simplex normalised to sympl_std_vol
         
         # solve minimal norm / least square
         print('solve linear system dimensions: '+str(lhs.shape))
