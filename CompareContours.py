@@ -6,7 +6,7 @@ from tqdm import tqdm
 # Test, how parallel gradients of two function g1 and g2 are.
 # Integrate absolute value of area of parallelogram spanned by g1/norm(g1) and g2/norm(g2)
 
-# 2dimensions: determinant (3d: cross product, nd: using Graam matrices)
+# 2dimensions: determinant (3d: cross product, nd: using Gram matrices)
 def compare_contour_num(g1,g2,xx1,xx2):
     
     dg1 = jacfwd(g1)
